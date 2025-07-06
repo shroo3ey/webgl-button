@@ -13,6 +13,7 @@ const WebGLGradient = () => {
   const [warpValue, setWarpValue] = useState(-4.0);
   const [borderRadius, setBorderRadius] = useState(48.0);
   const [borderThickness, setBorderThickness] = useState(24.0);
+  const [gradientWidth, setGradientWidth] = useState(0.5);
 
   // Helper function to convert RGB to hex
   const rgbToHex = (r: number, g: number, b: number) => {
@@ -71,6 +72,7 @@ const WebGLGradient = () => {
       uniform float u_warpValue;
       uniform float u_borderRadius;
       uniform float u_borderThickness;
+      uniform float u_gradientWidth;
       
       void main() {
         // Shift the UV coordinates based on mouse position
@@ -87,7 +89,7 @@ const WebGLGradient = () => {
         );
         
         // Create a horizontal gradient from light blue to dark blue 
-        float gradient = abs(rotated_uv.x * 3.0 - rotated_uv.y);
+        float gradient = abs(rotated_uv.x * 1.0 / u_gradientWidth - rotated_uv.y);
         gradient = 1.0 - gradient;
         
         // Create inner border effect with fixed physical thickness and gradient fade
@@ -155,7 +157,7 @@ const WebGLGradient = () => {
         vec2 warped_uv = rotated_uv + vec2(warpStrength * center_to_uv.x, -warpStrength * center_to_uv.y);
 
         // Sample gradient from warped position
-        float warpedGradient = abs(warped_uv.x * 3.0 - warped_uv.y);
+        float warpedGradient = abs(warped_uv.x * 1.0 / u_gradientWidth - warped_uv.y);
         warpedGradient = 1.0 - warpedGradient;// Create a horizontal gradient from light blue to dark blue 
 
         // Create color gradient from dark to middle to light
@@ -255,6 +257,7 @@ const WebGLGradient = () => {
     const warpValueUniformLocation = gl.getUniformLocation(program, 'u_warpValue');
     const borderRadiusUniformLocation = gl.getUniformLocation(program, 'u_borderRadius');
     const borderThicknessUniformLocation = gl.getUniformLocation(program, 'u_borderThickness');
+    const gradientWidthUniformLocation = gl.getUniformLocation(program, 'u_gradientWidth');
 
     // Create buffer for a full-screen quad
     const positionBuffer = gl.createBuffer();
@@ -299,6 +302,7 @@ const WebGLGradient = () => {
       gl.uniform1f(warpValueUniformLocation, warpValue);
       gl.uniform1f(borderRadiusUniformLocation, borderRadius);
       gl.uniform1f(borderThicknessUniformLocation, borderThickness);
+      gl.uniform1f(gradientWidthUniformLocation, gradientWidth);
 
       // Enable attribute
       gl.enableVertexAttribArray(positionAttributeLocation);
@@ -352,7 +356,7 @@ const WebGLGradient = () => {
       gl.deleteProgram(program);
       gl.deleteBuffer(positionBuffer);
     };
-  }, [mousePosition, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness]);
+  }, [mousePosition, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness, gradientWidth]);
 
   return (
     <div className="w-full h-screen bg-neutral-950 flex items-center justify-center">
@@ -460,6 +464,21 @@ const WebGLGradient = () => {
             className="w-full"
           />
           <span className="text-xs">{borderThickness}px</span>
+        </div>
+
+        {/* Gradient Width */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Gradient Width</label>
+          <input
+            type="range"
+            min="0.0"
+            max="1"
+            step="0.1"
+            value={gradientWidth}
+            onChange={(e) => setGradientWidth(parseFloat(e.target.value))}
+            className="w-full"
+          />
+          <span className="text-xs">{gradientWidth.toFixed(1)}</span>
         </div>
       </div>
     </div>
