@@ -59,6 +59,7 @@ const WebGLGradient = () => {
         
         // Create inner border effect with fixed physical thickness and gradient fade
         float borderThickness = 25.0; // Border thickness in pixels
+        float cornerRadius = 50.0; // Corner radius in pixels
         float border = 0.0;
         
         // Convert UV to pixel coordinates
@@ -70,8 +71,39 @@ const WebGLGradient = () => {
         float distFromTop = pixelCoord.y;
         float distFromBottom = u_resolution.y - pixelCoord.y;
         
-        // Find the minimum distance to any edge
-        float minDistToEdge = min(min(distFromLeft, distFromRight), min(distFromTop, distFromBottom));
+        // Calculate distance to rounded corners
+        vec2 cornerDistances = vec2(
+          min(distFromLeft, distFromRight),
+          min(distFromTop, distFromBottom)
+        );
+        
+        // Check if we're in a corner region
+        bool inCornerRegion = (distFromLeft < cornerRadius && distFromTop < cornerRadius) ||
+                             (distFromRight < cornerRadius && distFromTop < cornerRadius) ||
+                             (distFromLeft < cornerRadius && distFromBottom < cornerRadius) ||
+                             (distFromRight < cornerRadius && distFromBottom < cornerRadius);
+        
+        float minDistToEdge;
+        
+        if (inCornerRegion) {
+          // In corner region, calculate distance to rounded corner
+          vec2 cornerCenter;
+          if (distFromLeft < cornerRadius && distFromTop < cornerRadius) {
+            cornerCenter = vec2(cornerRadius, cornerRadius);
+          } else if (distFromRight < cornerRadius && distFromTop < cornerRadius) {
+            cornerCenter = vec2(u_resolution.x - cornerRadius, cornerRadius);
+          } else if (distFromLeft < cornerRadius && distFromBottom < cornerRadius) {
+            cornerCenter = vec2(cornerRadius, u_resolution.y - cornerRadius);
+          } else {
+            cornerCenter = vec2(u_resolution.x - cornerRadius, u_resolution.y - cornerRadius);
+          }
+          
+          float distToCornerCenter = distance(pixelCoord, cornerCenter);
+          minDistToEdge = cornerRadius - distToCornerCenter;
+        } else {
+          // Not in corner region, use regular edge distance
+          minDistToEdge = min(min(distFromLeft, distFromRight), min(distFromTop, distFromBottom));
+        }
         
         // Create gradient border effect - stronger closer to edge
         if (minDistToEdge < borderThickness) {
@@ -254,7 +286,7 @@ const WebGLGradient = () => {
 
   return (
     <div className="w-full h-screen bg-gray-900 flex items-center justify-center">
-      <div className="w-full max-w-xl h-52 overflow-hidden">
+      <div className="w-full max-w-xl h-52 overflow-hidden rounded-[50px] cursor-pointer">
         <canvas
           ref={canvasRef}
           className="w-full h-full block"
