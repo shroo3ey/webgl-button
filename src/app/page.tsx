@@ -32,15 +32,16 @@ const WebGLGradient = () => {
       }
     `;
 
-    // Fragment shader source - creates white to black to white gradient with mouse offset
+    // Fragment shader source - creates white to black to white gradient with mouse offset and inner border
     const fragmentShaderSource = /* glsl */`
       precision mediump float;
       varying vec2 v_uv;
       uniform vec2 u_mouse;
+      uniform vec2 u_resolution;
       
       void main() {
         // Shift the UV coordinates based on mouse position
-        vec2 shifted_uv = v_uv - u_mouse * 1.0;
+        vec2 shifted_uv = v_uv - u_mouse * 0.5;
         
         // Apply a slight rotation (about 15 degrees)
         float angle = 0.261799; // 15 degrees in radians
@@ -56,7 +57,34 @@ const WebGLGradient = () => {
         float gradient = abs(rotated_uv.x * 2.0 - 1.0);
         gradient = 1.0 - gradient;
         
-        gl_FragColor = vec4(gradient, gradient, gradient, 1.0);
+        // Create inner border effect with fixed physical thickness and gradient fade
+        float borderThickness = 20.0; // Border thickness in pixels
+        float border = 0.0;
+        
+        // Convert UV to pixel coordinates
+        vec2 pixelCoord = v_uv * u_resolution;
+        
+        // Calculate distance from edges
+        float distFromLeft = pixelCoord.x;
+        float distFromRight = u_resolution.x - pixelCoord.x;
+        float distFromTop = pixelCoord.y;
+        float distFromBottom = u_resolution.y - pixelCoord.y;
+        
+        // Find the minimum distance to any edge
+        float minDistToEdge = min(min(distFromLeft, distFromRight), min(distFromTop, distFromBottom));
+        
+        // Create gradient border effect - stronger closer to edge
+        if (minDistToEdge < borderThickness) {
+          // Normalize distance to 0-1 range within border area
+          float normalizedDist = minDistToEdge / borderThickness;
+          // Invert so 0 = at edge (strong border), 1 = at border edge (no border)
+          border = 1.0 - normalizedDist;
+        }
+        
+        // Mix the gradient with the border
+        vec3 finalColor = mix(vec3(gradient), vec3(0.5, 0.5, 0.5), border);
+        
+        gl_FragColor = vec4(finalColor, 1.0);
       }
     `;
 
@@ -114,6 +142,7 @@ const WebGLGradient = () => {
     // Get attribute and uniform locations
     const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
     const mouseUniformLocation = gl.getUniformLocation(program, 'u_mouse');
+    const resolutionUniformLocation = gl.getUniformLocation(program, 'u_resolution');
 
     // Create buffer for a full-screen quad
     const positionBuffer = gl.createBuffer();
@@ -145,6 +174,9 @@ const WebGLGradient = () => {
 
       // Set mouse uniform
       gl.uniform2f(mouseUniformLocation, mousePosition.x, mousePosition.y);
+      
+      // Set resolution uniform
+      gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
 
       // Enable attribute
       gl.enableVertexAttribArray(positionAttributeLocation);
@@ -181,8 +213,8 @@ const WebGLGradient = () => {
 
     // Mouse event handlers
     const handleMouseMove = (event: MouseEvent) => {
-      const x = event.clientX / window.innerWidth;
-      const y = event.clientY / window.innerHeight;
+      const x = (event.clientX / window.innerWidth) * 2 - 1;
+      const y = (event.clientY / window.innerHeight) * 2 - 1;
       setMousePosition({ x, y });
     };
 
