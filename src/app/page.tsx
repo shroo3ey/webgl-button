@@ -5,6 +5,32 @@ import React, { useEffect, useRef, useState } from 'react';
 const WebGLGradient = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
+  
+  // Control states
+  const [darkColor, setDarkColor] = useState({ r: 0.1, g: 0.1, b: 0.2 });
+  const [lightColor, setLightColor] = useState({ r: 0.7, g: 0.8, b: 0.9 });
+  const [warpValue, setWarpValue] = useState(-4.0);
+  const [borderRadius, setBorderRadius] = useState(48.0);
+  const [borderThickness, setBorderThickness] = useState(24.0);
+
+  // Helper function to convert RGB to hex
+  const rgbToHex = (r: number, g: number, b: number) => {
+    const toHex = (c: number) => {
+      const hex = Math.round(c * 255).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  };
+
+  // Helper function to convert hex to RGB
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+      r: parseInt(result[1], 16) / 255,
+      g: parseInt(result[2], 16) / 255,
+      b: parseInt(result[3], 16) / 255
+    } : { r: 0, g: 0, b: 0 };
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -38,6 +64,11 @@ const WebGLGradient = () => {
       varying vec2 v_uv;
       uniform vec2 u_mouse;
       uniform vec2 u_resolution;
+      uniform vec3 u_darkColor;
+      uniform vec3 u_lightColor;
+      uniform float u_warpValue;
+      uniform float u_borderRadius;
+      uniform float u_borderThickness;
       
       void main() {
         // Shift the UV coordinates based on mouse position
@@ -58,8 +89,8 @@ const WebGLGradient = () => {
         gradient = 1.0 - gradient;
         
         // Create inner border effect with fixed physical thickness and gradient fade
-        float borderThickness = 25.0; // Border thickness in pixels
-        float cornerRadius = 50.0; // Corner radius in pixels
+        float borderThickness = u_borderThickness; // Border thickness in pixels
+        float cornerRadius = u_borderRadius; // Corner radius in pixels
         float border = 0.0;
         
         // Convert UV to pixel coordinates
@@ -116,7 +147,7 @@ const WebGLGradient = () => {
         // Apply custom mapping to the border factor using the provided function
         float x = 1.0 - border; // Scale border to appropriate range for the function
         float customBorder = 0.5 * exp(-7.0 * x / 0.3) + 0.5 + 0.5 * exp(-pow(7.0 * x - 4.2, 2.0) / (2.0 * 0.35 * 0.35)) - 1.0 / (1.98 + exp(-(7.0 * x - 5.5) / 0.4));
-        float warpStrength = customBorder * -4.0; // Scale down the result for appropriate warp effect
+        float warpStrength = customBorder * u_warpValue; // Use uniform warp value
 
         vec2 center_to_uv = rotated_uv - center;
         vec2 warped_uv = rotated_uv + vec2(warpStrength * center_to_uv.x, -warpStrength * center_to_uv.y);
@@ -126,8 +157,8 @@ const WebGLGradient = () => {
         warpedGradient = 1.0 - warpedGradient;// Create a horizontal gradient from light blue to dark blue 
 
         // Create color gradient from light blue to dark blue
-        vec3 lightBlue = vec3(0.7, 0.8, 0.9); // Light blue
-        vec3 darkBlue = vec3(0.1, 0.1, 0.2);  // Dark blue
+        vec3 lightBlue = u_lightColor; // Use uniform light color
+        vec3 darkBlue = u_darkColor;   // Use uniform dark color
         
         // Interpolate between colors based on gradient value
         vec3 gradientColor = mix(darkBlue, lightBlue, gradient);
@@ -195,6 +226,11 @@ const WebGLGradient = () => {
     const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
     const mouseUniformLocation = gl.getUniformLocation(program, 'u_mouse');
     const resolutionUniformLocation = gl.getUniformLocation(program, 'u_resolution');
+    const darkColorUniformLocation = gl.getUniformLocation(program, 'u_darkColor');
+    const lightColorUniformLocation = gl.getUniformLocation(program, 'u_lightColor');
+    const warpValueUniformLocation = gl.getUniformLocation(program, 'u_warpValue');
+    const borderRadiusUniformLocation = gl.getUniformLocation(program, 'u_borderRadius');
+    const borderThicknessUniformLocation = gl.getUniformLocation(program, 'u_borderThickness');
 
     // Create buffer for a full-screen quad
     const positionBuffer = gl.createBuffer();
@@ -229,6 +265,15 @@ const WebGLGradient = () => {
       
       // Set resolution uniform
       gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
+
+      // Set color uniforms
+      gl.uniform3f(darkColorUniformLocation, darkColor.r, darkColor.g, darkColor.b);
+      gl.uniform3f(lightColorUniformLocation, lightColor.r, lightColor.g, lightColor.b);
+
+      // Set warp and border radius uniforms
+      gl.uniform1f(warpValueUniformLocation, warpValue);
+      gl.uniform1f(borderRadiusUniformLocation, borderRadius);
+      gl.uniform1f(borderThicknessUniformLocation, borderThickness);
 
       // Enable attribute
       gl.enableVertexAttribArray(positionAttributeLocation);
@@ -282,17 +327,99 @@ const WebGLGradient = () => {
       gl.deleteProgram(program);
       gl.deleteBuffer(positionBuffer);
     };
-  }, [mousePosition]);
+  }, [mousePosition, darkColor, lightColor, warpValue, borderRadius, borderThickness]);
 
   return (
     <div className="w-full h-screen bg-neutral-950 flex items-center justify-center">
-      <div className="w-full max-w-xl h-52 overflow-hidden rounded-[50px] cursor-pointer hover:scale-105 transition-all duration-200 active:scale-95 shadow-2xl shadow-[#a1b8d1]/10 active:shadow-[#a1b8d1]/20">
+      <div className="w-full max-w-4xl h-96 overflow-hidden cursor-pointer hover:scale-105 transition-all duration-200 active:scale-95 shadow-2xl shadow-[#a1b8d1]/10 active:shadow-[#a1b8d1]/20 relative" style={{ borderRadius: `${borderRadius}px` }}>
         <canvas
           ref={canvasRef}
           className="w-full h-full block"
           style={{ width: '100%', height: '100%' }}
         />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-bold z-100 select-none">Hello world!</div>
+        <p className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-bold z-100 select-none">Hello world!</p>
+      </div>
+      
+      {/* Controls Panel */}
+      <div className="fixed top-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg p-4 text-white min-w-64">
+        <h3 className="text-lg font-semibold mb-4">Controls</h3>
+        
+        {/* Dark Color */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Dark Color</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={rgbToHex(darkColor.r, darkColor.g, darkColor.b)}
+              onChange={(e) => setDarkColor(hexToRgb(e.target.value))}
+              className="w-12 h-8 rounded border border-gray-600"
+            />
+            <span className="text-xs text-gray-300">
+              {rgbToHex(darkColor.r, darkColor.g, darkColor.b)}
+            </span>
+          </div>
+        </div>
+
+        {/* Light Color */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Light Color</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={rgbToHex(lightColor.r, lightColor.g, lightColor.b)}
+              onChange={(e) => setLightColor(hexToRgb(e.target.value))}
+              className="w-12 h-8 rounded border border-gray-600"
+            />
+            <span className="text-xs text-gray-300">
+              {rgbToHex(lightColor.r, lightColor.g, lightColor.b)}
+            </span>
+          </div>
+        </div>
+
+        {/* Warp Value */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Warp Value</label>
+          <input
+            type="range"
+            min="-10"
+            max="10"
+            step="0.1"
+            value={warpValue}
+            onChange={(e) => setWarpValue(parseFloat(e.target.value))}
+            className="w-full"
+          />
+          <span className="text-xs">{warpValue.toFixed(1)}</span>
+        </div>
+
+        {/* Border Radius */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Border Radius</label>
+          <input
+            type="range"
+            min="0"
+            max="128"
+            step="8"
+            value={borderRadius}
+            onChange={(e) => setBorderRadius(parseFloat(e.target.value))}
+            className="w-full"
+          />
+          <span className="text-xs">{borderRadius}px</span>
+        </div>
+
+        {/* Border Thickness */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Border Thickness</label>
+          <input
+            type="range"
+            min="0"
+            max="64"
+            step="4"
+            value={borderThickness}
+            onChange={(e) => setBorderThickness(parseFloat(e.target.value))}
+            className="w-full"
+          />
+          <span className="text-xs">{borderThickness}px</span>
+        </div>
       </div>
     </div>
   );
