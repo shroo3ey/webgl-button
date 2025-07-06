@@ -81,8 +81,16 @@ const WebGLGradient = () => {
           border = 1.0 - normalizedDist;
         }
         
-        // Mix the gradient with the border
-        vec3 finalColor = mix(vec3(gradient), vec3(0.5, 0.5, 0.5), border);
+        // Warp the gradient color by sampling from a different position based on border factor
+        float warpStrength = border * 1.0; // Adjust this value to control warp intensity
+        vec2 warped_uv = rotated_uv + vec2(warpStrength * 0.1, -warpStrength * 0.05);
+        
+        // Sample gradient from warped position
+        float warpedGradient = abs(warped_uv.x * 2.0 - 1.0);
+        warpedGradient = 1.0 - warpedGradient;
+        
+        // Mix between original and warped gradient based on border factor
+        vec3 finalColor = mix(vec3(gradient), vec3(warpedGradient), border);
         
         gl_FragColor = vec4(finalColor, 1.0);
       }
