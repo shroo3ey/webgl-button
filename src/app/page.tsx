@@ -285,8 +285,8 @@ const WebGLGradient = () => {
   }, [mousePosition]);
 
   return (
-    <div className="w-full h-screen bg-gray-900 flex items-center justify-center">
-      <div className="w-full max-w-xl h-52 overflow-hidden rounded-[50px] cursor-pointer hover:scale-105 transition-all duration-200 active:scale-95">
+    <div className="w-full h-screen bg-neutral-950 flex items-center justify-center">
+      <div className="w-full max-w-xl h-52 overflow-hidden rounded-[50px] cursor-pointer hover:scale-105 transition-all duration-200 active:scale-95 shadow-2xl shadow-[#a1b8d1]/10 active:shadow-[#a1b8d1]/20">
         <canvas
           ref={canvasRef}
           className="w-full h-full block"
