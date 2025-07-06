@@ -286,12 +286,13 @@ const WebGLGradient = () => {
 
   return (
     <div className="w-full h-screen bg-gray-900 flex items-center justify-center">
-      <div className="w-full max-w-xl h-52 overflow-hidden rounded-[50px] cursor-pointer">
+      <div className="w-full max-w-xl h-52 overflow-hidden rounded-[50px] cursor-pointer hover:scale-105 transition-all duration-200 active:scale-95">
         <canvas
           ref={canvasRef}
           className="w-full h-full block"
           style={{ width: '100%', height: '100%' }}
         />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-bold z-100 select-none">Hello world!</div>
       </div>
     </div>
   );
