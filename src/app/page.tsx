@@ -331,7 +331,7 @@ const WebGLGradient = () => {
 
   return (
     <div className="w-full h-screen bg-neutral-950 flex items-center justify-center">
-      <div className="w-full max-w-4xl h-96 overflow-hidden cursor-pointer hover:scale-105 transition-all duration-200 active:scale-95 shadow-2xl shadow-[#a1b8d1]/10 active:shadow-[#a1b8d1]/20 relative" style={{ borderRadius: `${borderRadius}px` }}>
+      <div className="w-full max-w-xl h-64 overflow-hidden cursor-pointer hover:scale-105 transition-all duration-200 active:scale-95 shadow-2xl shadow-[#a1b8d1]/10 active:shadow-[#a1b8d1]/20 relative" style={{ borderRadius: `${borderRadius}px` }}>
         <canvas
           ref={canvasRef}
           className="w-full h-full block"
@@ -381,8 +381,8 @@ const WebGLGradient = () => {
           <label className="block text-sm font-medium mb-2">Warp Value</label>
           <input
             type="range"
-            min="-10"
-            max="10"
+            min="-5"
+            max="5"
             step="0.1"
             value={warpValue}
             onChange={(e) => setWarpValue(parseFloat(e.target.value))}
