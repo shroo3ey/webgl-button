@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const WebGLGradient = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -31,14 +32,28 @@ const WebGLGradient = () => {
       }
     `;
 
-    // Fragment shader source - creates white to black to white gradient
+    // Fragment shader source - creates white to black to white gradient with mouse offset
     const fragmentShaderSource = `
       precision mediump float;
       varying vec2 v_uv;
+      uniform vec2 u_mouse;
       
       void main() {
+        // Shift the UV coordinates based on mouse position
+        vec2 shifted_uv = v_uv - u_mouse * 1.0;
+        
+        // Apply a slight rotation (about 15 degrees)
+        float angle = 0.261799; // 15 degrees in radians
+        float cos_a = cos(angle);
+        float sin_a = sin(angle);
+        vec2 center = vec2(0.5, 0.5);
+        vec2 rotated_uv = center + vec2(
+          (shifted_uv.x - center.x) * cos_a - (shifted_uv.y - center.y) * sin_a,
+          (shifted_uv.x - center.x) * sin_a + (shifted_uv.y - center.y) * cos_a
+        );
+        
         // Create a horizontal gradient from white to black to white
-        float gradient = abs(v_uv.x * 2.0 - 1.0);
+        float gradient = abs(rotated_uv.x * 2.0 - 1.0);
         gradient = 1.0 - gradient;
         
         gl_FragColor = vec4(gradient, gradient, gradient, 1.0);
@@ -96,8 +111,9 @@ const WebGLGradient = () => {
       return;
     }
 
-    // Get attribute location
+    // Get attribute and uniform locations
     const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
+    const mouseUniformLocation = gl.getUniformLocation(program, 'u_mouse');
 
     // Create buffer for a full-screen quad
     const positionBuffer = gl.createBuffer();
@@ -126,6 +142,9 @@ const WebGLGradient = () => {
 
       // Use shader program
       gl.useProgram(program);
+
+      // Set mouse uniform
+      gl.uniform2f(mouseUniformLocation, mousePosition.x, mousePosition.y);
 
       // Enable attribute
       gl.enableVertexAttribArray(positionAttributeLocation);
@@ -160,19 +179,30 @@ const WebGLGradient = () => {
     const resizeObserver = new ResizeObserver(resizeCanvas);
     resizeObserver.observe(canvas);
 
+    // Mouse event handlers
+    const handleMouseMove = (event: MouseEvent) => {
+      const x = event.clientX / window.innerWidth;
+      const y = event.clientY / window.innerHeight;
+      setMousePosition({ x, y });
+    };
+
+    // Add event listeners to window for global mouse tracking
+    window.addEventListener('mousemove', handleMouseMove);
+
     // Cleanup function
     return () => {
       resizeObserver.disconnect();
+      window.removeEventListener('mousemove', handleMouseMove);
       gl.deleteShader(vertexShader);
       gl.deleteShader(fragmentShader);
       gl.deleteProgram(program);
       gl.deleteBuffer(positionBuffer);
     };
-  }, []);
+  }, [mousePosition]);
 
   return (
     <div className="w-full h-screen bg-gray-900 flex items-center justify-center">
-      <div className="w-full max-w-4xl h-96 overflow-hidden">
+      <div className="w-full max-w-xl h-52 overflow-hidden">
         <canvas
           ref={canvasRef}
           className="w-full h-full block"
