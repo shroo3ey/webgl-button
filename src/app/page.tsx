@@ -366,7 +366,7 @@ const WebGLGradient = () => {
           className="w-full h-full block"
           style={{ width: '100%', height: '100%' }}
         />
-        <p className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-bold z-100 select-none" style={{ mixBlendMode: 'difference', color: 'white' }}>Hello world!</p>
+        <p className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl font-black z-100 select-none w-full text-center" style={{ mixBlendMode: 'difference', color: 'white' }}>Hello world!</p>
       </div>
       
       {/* Controls Panel */}
