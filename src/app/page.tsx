@@ -41,7 +41,7 @@ const WebGLGradient = () => {
       
       void main() {
         // Shift the UV coordinates based on mouse position
-        vec2 shifted_uv = v_uv - u_mouse * 0.5;
+        vec2 shifted_uv = v_uv - u_mouse;
         
         // Apply a slight rotation (about 15 degrees)
         float angle = 0.261799; // 15 degrees in radians
@@ -53,12 +53,12 @@ const WebGLGradient = () => {
           (shifted_uv.x - center.x) * sin_a + (shifted_uv.y - center.y) * cos_a
         );
         
-        // Create a horizontal gradient from light blue to dark blue to light blue
-        float gradient = abs(rotated_uv.x * 2.0 - 1.0);
+        // Create a horizontal gradient from light blue to dark blue 
+        float gradient = abs(rotated_uv.x * 3.0 - rotated_uv.y);
         gradient = 1.0 - gradient;
         
         // Create inner border effect with fixed physical thickness and gradient fade
-        float borderThickness = 15.0; // Border thickness in pixels
+        float borderThickness = 25.0; // Border thickness in pixels
         float border = 0.0;
         
         // Convert UV to pixel coordinates
@@ -82,15 +82,17 @@ const WebGLGradient = () => {
         }
 
         // Apply custom mapping to the border factor using the provided function
-        float x = border; // Scale border to appropriate range for the function
+        float x = 1.0 - border; // Scale border to appropriate range for the function
         float customBorder = 0.5 * exp(-7.0 * x / 0.3) + 0.5 + 0.5 * exp(-pow(7.0 * x - 4.2, 2.0) / (2.0 * 0.35 * 0.35)) - 1.0 / (1.98 + exp(-(7.0 * x - 5.5) / 0.4));
-        float warpStrength = customBorder * 2.0; // Scale down the result for appropriate warp effect
+        float warpStrength = customBorder * -4.0; // Scale down the result for appropriate warp effect
 
-        vec2 warped_uv = rotated_uv + vec2(warpStrength, -warpStrength);
-        
+        vec2 center_to_uv = rotated_uv - center;
+        vec2 warped_uv = rotated_uv + vec2(warpStrength * center_to_uv.x, -warpStrength * center_to_uv.y);
+
         // Sample gradient from warped position
-        float warpedGradient = abs(warped_uv.x);
-        
+        float warpedGradient = abs(warped_uv.x * 3.0 - warped_uv.y);
+        warpedGradient = 1.0 - warpedGradient;// Create a horizontal gradient from light blue to dark blue 
+
         // Create color gradient from light blue to dark blue
         vec3 lightBlue = vec3(0.7, 0.8, 0.9); // Light blue
         vec3 darkBlue = vec3(0.1, 0.1, 0.2);  // Dark blue
@@ -99,8 +101,8 @@ const WebGLGradient = () => {
         vec3 gradientColor = mix(darkBlue, lightBlue, gradient);
         vec3 warpedColor = mix(darkBlue, lightBlue, warpedGradient);
         
-        // Overlay border effect over the gradient background
-        vec3 finalColor = gradientColor + warpedColor * border;
+        // Use border color if border > 0.0, otherwise use gradient color
+        vec3 finalColor = border > 0.0 ? warpedColor : gradientColor;
         
         gl_FragColor = vec4(finalColor, 1.0);
       }
@@ -191,7 +193,7 @@ const WebGLGradient = () => {
       gl.useProgram(program);
 
       // Set mouse uniform
-      gl.uniform2f(mouseUniformLocation, mousePosition.x, mousePosition.y);
+      gl.uniform2f(mouseUniformLocation, mousePosition.x, -mousePosition.y);
       
       // Set resolution uniform
       gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
