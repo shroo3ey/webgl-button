@@ -9,6 +9,7 @@ const WebGLGradient = () => {
   // Control states
   const [darkColor, setDarkColor] = useState({ r: 0.1, g: 0.1, b: 0.2 });
   const [lightColor, setLightColor] = useState({ r: 0.7, g: 0.8, b: 0.9 });
+  const [middleColor, setMiddleColor] = useState({ r: 0.4, g: 0.5, b: 0.6 });
   const [warpValue, setWarpValue] = useState(-4.0);
   const [borderRadius, setBorderRadius] = useState(48.0);
   const [borderThickness, setBorderThickness] = useState(24.0);
@@ -66,6 +67,7 @@ const WebGLGradient = () => {
       uniform vec2 u_resolution;
       uniform vec3 u_darkColor;
       uniform vec3 u_lightColor;
+      uniform vec3 u_middleColor;
       uniform float u_warpValue;
       uniform float u_borderRadius;
       uniform float u_borderThickness;
@@ -156,13 +158,34 @@ const WebGLGradient = () => {
         float warpedGradient = abs(warped_uv.x * 3.0 - warped_uv.y);
         warpedGradient = 1.0 - warpedGradient;// Create a horizontal gradient from light blue to dark blue 
 
-        // Create color gradient from light blue to dark blue
-        vec3 lightBlue = u_lightColor; // Use uniform light color
+        // Create color gradient from dark to middle to light
         vec3 darkBlue = u_darkColor;   // Use uniform dark color
+        vec3 middleBlue = u_middleColor; // Use uniform middle color
+        vec3 lightBlue = u_lightColor; // Use uniform light color
         
-        // Interpolate between colors based on gradient value
-        vec3 gradientColor = mix(darkBlue, lightBlue, gradient);
-        vec3 warpedColor = mix(darkBlue, lightBlue, warpedGradient);
+        // Interpolate between three colors based on gradient value
+        vec3 gradientColor;
+        vec3 warpedColor;
+        
+        if (gradient < 0.5) {
+          // Interpolate between dark and middle color
+          float t = gradient * 2.0; // Scale 0-0.5 to 0-1
+          gradientColor = mix(darkBlue, middleBlue, t);
+        } else {
+          // Interpolate between middle and light color
+          float t = (gradient - 0.5) * 2.0; // Scale 0.5-1 to 0-1
+          gradientColor = mix(middleBlue, lightBlue, t);
+        }
+        
+        if (warpedGradient < 0.5) {
+          // Interpolate between dark and middle color
+          float t = warpedGradient * 2.0; // Scale 0-0.5 to 0-1
+          warpedColor = mix(darkBlue, middleBlue, t);
+        } else {
+          // Interpolate between middle and light color
+          float t = (warpedGradient - 0.5) * 2.0; // Scale 0.5-1 to 0-1
+          warpedColor = mix(middleBlue, lightBlue, t);
+        }
         
         // Use border color if border > 0.0, otherwise use gradient color
         vec3 finalColor = border > 0.0 ? warpedColor : gradientColor;
@@ -228,6 +251,7 @@ const WebGLGradient = () => {
     const resolutionUniformLocation = gl.getUniformLocation(program, 'u_resolution');
     const darkColorUniformLocation = gl.getUniformLocation(program, 'u_darkColor');
     const lightColorUniformLocation = gl.getUniformLocation(program, 'u_lightColor');
+    const middleColorUniformLocation = gl.getUniformLocation(program, 'u_middleColor');
     const warpValueUniformLocation = gl.getUniformLocation(program, 'u_warpValue');
     const borderRadiusUniformLocation = gl.getUniformLocation(program, 'u_borderRadius');
     const borderThicknessUniformLocation = gl.getUniformLocation(program, 'u_borderThickness');
@@ -269,6 +293,7 @@ const WebGLGradient = () => {
       // Set color uniforms
       gl.uniform3f(darkColorUniformLocation, darkColor.r, darkColor.g, darkColor.b);
       gl.uniform3f(lightColorUniformLocation, lightColor.r, lightColor.g, lightColor.b);
+      gl.uniform3f(middleColorUniformLocation, middleColor.r, middleColor.g, middleColor.b);
 
       // Set warp and border radius uniforms
       gl.uniform1f(warpValueUniformLocation, warpValue);
@@ -327,7 +352,7 @@ const WebGLGradient = () => {
       gl.deleteProgram(program);
       gl.deleteBuffer(positionBuffer);
     };
-  }, [mousePosition, darkColor, lightColor, warpValue, borderRadius, borderThickness]);
+  }, [mousePosition, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness]);
 
   return (
     <div className="w-full h-screen bg-neutral-950 flex items-center justify-center">
@@ -372,6 +397,22 @@ const WebGLGradient = () => {
             />
             <span className="text-xs text-gray-300">
               {rgbToHex(lightColor.r, lightColor.g, lightColor.b)}
+            </span>
+          </div>
+        </div>
+
+        {/* Middle Color */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Middle Color</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={rgbToHex(middleColor.r, middleColor.g, middleColor.b)}
+              onChange={(e) => setMiddleColor(hexToRgb(e.target.value))}
+              className="w-12 h-8 rounded border border-gray-600"
+            />
+            <span className="text-xs text-gray-300">
+              {rgbToHex(middleColor.r, middleColor.g, middleColor.b)}
             </span>
           </div>
         </div>
