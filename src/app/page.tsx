@@ -22,7 +22,7 @@ const WebGLGradient = () => {
     }
 
     // Vertex shader source
-    const vertexShaderSource = `
+    const vertexShaderSource = /* glsl */`
       attribute vec2 a_position;
       varying vec2 v_uv;
       
@@ -33,7 +33,7 @@ const WebGLGradient = () => {
     `;
 
     // Fragment shader source - creates white to black to white gradient with mouse offset
-    const fragmentShaderSource = `
+    const fragmentShaderSource = /* glsl */`
       precision mediump float;
       varying vec2 v_uv;
       uniform vec2 u_mouse;
