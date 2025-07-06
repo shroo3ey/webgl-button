@@ -53,7 +53,7 @@ const WebGLGradient = () => {
           (shifted_uv.x - center.x) * sin_a + (shifted_uv.y - center.y) * cos_a
         );
         
-        // Create a horizontal gradient from white to black to white
+        // Create a horizontal gradient from light blue to dark blue to light blue
         float gradient = abs(rotated_uv.x * 2.0 - 1.0);
         gradient = 1.0 - gradient;
         
@@ -84,15 +84,23 @@ const WebGLGradient = () => {
         // Apply custom mapping to the border factor using the provided function
         float x = border; // Scale border to appropriate range for the function
         float customBorder = 0.5 * exp(-7.0 * x / 0.3) + 0.5 + 0.5 * exp(-pow(7.0 * x - 4.2, 2.0) / (2.0 * 0.35 * 0.35)) - 1.0 / (1.98 + exp(-(7.0 * x - 5.5) / 0.4));
-        float warpStrength = customBorder; // Scale down the result for appropriate warp effect
+        float warpStrength = customBorder * 2.0; // Scale down the result for appropriate warp effect
 
         vec2 warped_uv = rotated_uv + vec2(warpStrength, -warpStrength);
         
         // Sample gradient from warped position
         float warpedGradient = abs(warped_uv.x);
         
+        // Create color gradient from light blue to dark blue
+        vec3 lightBlue = vec3(0.7, 0.8, 0.9); // Light blue
+        vec3 darkBlue = vec3(0.1, 0.1, 0.2);  // Dark blue
+        
+        // Interpolate between colors based on gradient value
+        vec3 gradientColor = mix(darkBlue, lightBlue, gradient);
+        vec3 warpedColor = mix(darkBlue, lightBlue, warpedGradient);
+        
         // Overlay border effect over the gradient background
-        vec3 finalColor = vec3(gradient) + vec3(warpedGradient) * border;
+        vec3 finalColor = gradientColor + warpedColor * border;
         
         gl_FragColor = vec4(finalColor, 1.0);
       }
