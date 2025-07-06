@@ -58,7 +58,7 @@ const WebGLGradient = () => {
         gradient = 1.0 - gradient;
         
         // Create inner border effect with fixed physical thickness and gradient fade
-        float borderThickness = 20.0; // Border thickness in pixels
+        float borderThickness = 15.0; // Border thickness in pixels
         float border = 0.0;
         
         // Convert UV to pixel coordinates
@@ -80,17 +80,19 @@ const WebGLGradient = () => {
           // Invert so 0 = at edge (strong border), 1 = at border edge (no border)
           border = 1.0 - normalizedDist;
         }
-        
-        // Warp the gradient color by sampling from a different position based on border factor
-        float warpStrength = border * 1.0; // Adjust this value to control warp intensity
-        vec2 warped_uv = rotated_uv + vec2(warpStrength * 0.1, -warpStrength * 0.05);
+
+        // Apply custom mapping to the border factor using the provided function
+        float x = border; // Scale border to appropriate range for the function
+        float customBorder = 0.5 * exp(-7.0 * x / 0.3) + 0.5 + 0.5 * exp(-pow(7.0 * x - 4.2, 2.0) / (2.0 * 0.35 * 0.35)) - 1.0 / (1.98 + exp(-(7.0 * x - 5.5) / 0.4));
+        float warpStrength = customBorder; // Scale down the result for appropriate warp effect
+
+        vec2 warped_uv = rotated_uv + vec2(warpStrength, -warpStrength);
         
         // Sample gradient from warped position
-        float warpedGradient = abs(warped_uv.x * 2.0 - 1.0);
-        warpedGradient = 1.0 - warpedGradient;
+        float warpedGradient = abs(warped_uv.x);
         
-        // Mix between original and warped gradient based on border factor
-        vec3 finalColor = mix(vec3(gradient), vec3(warpedGradient), border);
+        // Overlay border effect over the gradient background
+        vec3 finalColor = vec3(gradient) + vec3(warpedGradient) * border;
         
         gl_FragColor = vec4(finalColor, 1.0);
       }
