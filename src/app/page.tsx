@@ -12,9 +12,9 @@ const WebGLGradient = () => {
   const [darkColor, setDarkColor] = useState({ r: 0.1, g: 0.1, b: 0.2 });
   const [lightColor, setLightColor] = useState({ r: 0.86, g: 0.84, b: 0.94 });
   const [middleColor, setMiddleColor] = useState({ r: 0.26, g: 0.58, b: 0.87 });
-  const [warpValue, setWarpValue] = useState(-4.0);
+  const [warpValue, setWarpValue] = useState(-1.2);
   const [borderRadius, setBorderRadius] = useState(128.0);
-  const [borderThickness, setBorderThickness] = useState(40.0);
+  const [borderThickness, setBorderThickness] = useState(48.0);
   const [gradientWidth, setGradientWidth] = useState(0.5);
   const [gradientAngle, setGradientAngle] = useState(90.0);
 
@@ -422,13 +422,13 @@ const WebGLGradient = () => {
 
   return (
     <div className="w-full h-screen bg-neutral-950 flex items-center justify-center">
-      <div className="w-full max-w-xl h-64 overflow-hidden cursor-pointer hover:scale-105 transition-all duration-200 active:scale-95 shadow-2xl shadow-[#a1b8d1]/10 hover:shadow-[#569ce8]/20 active:shadow-[#569ce8]/40 relative" style={{ borderRadius: `${borderRadius}px` }}>
+      <div className="w-full max-w-2xl h-64 overflow-hidden cursor-pointer hover:scale-105 transition-all duration-200 active:scale-95 shadow-2xl shadow-[#a1b8d1]/10 hover:shadow-[#569ce8]/20 active:shadow-[#569ce8]/40 relative" style={{ borderRadius: `${borderRadius}px` }}>
         <canvas
           ref={canvasRef}
           className="w-full h-full block"
           style={{ width: '100%', height: '100%' }}
         />
-        <p className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl font-black z-100 select-none w-full text-center" style={{ mixBlendMode: 'difference', color: 'white' }}>Hello world!</p>
+        <p className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl font-black z-100 select-none w-full text-center pointer-events-none" style={{ mixBlendMode: 'difference', color: 'white' }}>Hello world!</p>
       </div>
       
       {/* Controls Panel */}
