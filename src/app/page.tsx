@@ -13,8 +13,8 @@ const WebGLGradient = () => {
   const [lightColor, setLightColor] = useState({ r: 0.86, g: 0.84, b: 0.94 });
   const [middleColor, setMiddleColor] = useState({ r: 0.26, g: 0.58, b: 0.87 });
   const [warpValue, setWarpValue] = useState(-4.0);
-  const [borderRadius, setBorderRadius] = useState(48.0);
-  const [borderThickness, setBorderThickness] = useState(24.0);
+  const [borderRadius, setBorderRadius] = useState(128.0);
+  const [borderThickness, setBorderThickness] = useState(40.0);
   const [gradientWidth, setGradientWidth] = useState(0.5);
   const [gradientAngle, setGradientAngle] = useState(90.0);
 
