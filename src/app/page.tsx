@@ -5,6 +5,8 @@ import React, { useEffect, useRef, useState } from 'react';
 const WebGLGradient = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
+  const [isMousePressed, setIsMousePressed] = useState(false);
+  const [offsetProgress, setOffsetProgress] = useState(0);
   
   // Control states
   const [darkColor, setDarkColor] = useState({ r: 0.1, g: 0.1, b: 0.2 });
@@ -33,6 +35,34 @@ const WebGLGradient = () => {
       b: parseInt(result[3], 16) / 255
     } : { r: 0, g: 0, b: 0 };
   };
+
+  // Easing function for smooth transitions
+  const easeInOut = (t: number) => {
+    return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+  };
+
+  // Animation effect for smooth offset transitions
+  useEffect(() => {
+    const targetProgress = isMousePressed ? 1 : 0;
+    const duration = 200; // 200ms
+    const startTime = performance.now();
+    const startProgress = offsetProgress;
+
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easedProgress = easeInOut(progress);
+      const newProgress = startProgress + (targetProgress - startProgress) * easedProgress;
+      
+      setOffsetProgress(newProgress);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [isMousePressed]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -287,8 +317,15 @@ const WebGLGradient = () => {
       // Use shader program
       gl.useProgram(program);
 
+      // Calculate mouse position with smooth offset transition
+      const offsetAmount = 0.1;
+      const offsetX = offsetProgress * offsetAmount;
+      const offsetY = offsetProgress * offsetAmount;
+      const adjustedMouseX = mousePosition.x + offsetX;
+      const adjustedMouseY = mousePosition.y + offsetY;
+      
       // Set mouse uniform
-      gl.uniform2f(mouseUniformLocation, mousePosition.x, -mousePosition.y);
+      gl.uniform2f(mouseUniformLocation, adjustedMouseX, -adjustedMouseY);
       
       // Set resolution uniform
       gl.uniform2f(resolutionUniformLocation, canvas.width, canvas.height);
@@ -344,19 +381,31 @@ const WebGLGradient = () => {
       setMousePosition({ x, y });
     };
 
+    const handleMouseDown = () => {
+      setIsMousePressed(true);
+    };
+
+    const handleMouseUp = () => {
+      setIsMousePressed(false);
+    };
+
     // Add event listeners to window for global mouse tracking
     window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
 
     // Cleanup function
     return () => {
       resizeObserver.disconnect();
       window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
       gl.deleteShader(vertexShader);
       gl.deleteShader(fragmentShader);
       gl.deleteProgram(program);
       gl.deleteBuffer(positionBuffer);
     };
-  }, [mousePosition, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness, gradientWidth]);
+  }, [mousePosition, offsetProgress, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness, gradientWidth]);
 
   return (
     <div className="w-full h-screen bg-neutral-950 flex items-center justify-center">
