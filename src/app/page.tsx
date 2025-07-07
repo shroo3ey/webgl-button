@@ -118,8 +118,15 @@ const WebGLGradient = () => {
           (shifted_uv.x - center.x) * sin_a + (shifted_uv.y - center.y) * cos_a
         );
         
-        // Create a horizontal gradient from light blue to dark blue 
-        float gradient = abs(rotated_uv.x * 1.0 / u_gradientWidth - rotated_uv.y);
+        // Create a tangent-based gradient morphing
+        // Calculate distance from center
+        float distFromCenter = distance(rotated_uv, center);
+        
+        // Create a tangent curve - the gradient follows a curved path
+        float tangentCurve = sin(distFromCenter * 3.14159 * 2.0) * 0.1;
+        
+        // Apply tangent morphing to the gradient
+        float gradient = abs(rotated_uv.x * 1.0 / u_gradientWidth - rotated_uv.y + tangentCurve);
         gradient = 1.0 - gradient;
         
         // Create inner border effect with fixed physical thickness and gradient fade
@@ -186,9 +193,11 @@ const WebGLGradient = () => {
         vec2 center_to_uv = rotated_uv - center;
         vec2 warped_uv = rotated_uv + vec2(warpStrength * center_to_uv.x, -warpStrength * center_to_uv.y);
 
-        // Sample gradient from warped position
-        float warpedGradient = abs(warped_uv.x * 1.0 / u_gradientWidth - warped_uv.y);
-        warpedGradient = 1.0 - warpedGradient;// Create a horizontal gradient from light blue to dark blue 
+        // Sample gradient from warped position with tangent morphing
+        float warpedDistFromCenter = distance(warped_uv, center);
+        float warpedTangentCurve = sin(warpedDistFromCenter * 3.14159 * 2.0) * 0.1;
+        float warpedGradient = abs(warped_uv.x * 1.0 / u_gradientWidth - warped_uv.y + warpedTangentCurve);
+        warpedGradient = 1.0 - warpedGradient; 
 
         // Create color gradient from dark to middle to light
         vec3 darkBlue = u_darkColor;   // Use uniform dark color
