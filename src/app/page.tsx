@@ -330,7 +330,7 @@ const WebGLGradient = () => {
       gl.useProgram(program);
 
       // Calculate mouse position with smooth offset transition
-      const offsetAmount = 0.1;
+      const offsetAmount = 0.4;
       const offsetX = offsetProgress * offsetAmount;
       const offsetY = offsetProgress * offsetAmount;
       const adjustedMouseX = mousePosition.x + offsetX;
