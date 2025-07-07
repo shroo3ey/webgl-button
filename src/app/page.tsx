@@ -16,6 +16,7 @@ const WebGLGradient = () => {
   const [borderRadius, setBorderRadius] = useState(48.0);
   const [borderThickness, setBorderThickness] = useState(24.0);
   const [gradientWidth, setGradientWidth] = useState(0.5);
+  const [gradientAngle, setGradientAngle] = useState(90.0);
 
   // Helper function to convert RGB to hex
   const rgbToHex = (r: number, g: number, b: number) => {
@@ -103,13 +104,14 @@ const WebGLGradient = () => {
       uniform float u_borderRadius;
       uniform float u_borderThickness;
       uniform float u_gradientWidth;
+      uniform float u_gradientAngle;
       
       void main() {
         // Shift the UV coordinates based on mouse position
         vec2 shifted_uv = v_uv - u_mouse;
         
-        // Apply a slight rotation (about 15 degrees)
-        float angle = 0.261799; // 15 degrees in radians
+        // Apply rotation based on gradient angle
+        float angle = u_gradientAngle * 3.14159 / 180.0; // Convert degrees to radians
         float cos_a = cos(angle);
         float sin_a = sin(angle);
         vec2 center = vec2(0.5, 0.5);
@@ -297,6 +299,7 @@ const WebGLGradient = () => {
     const borderRadiusUniformLocation = gl.getUniformLocation(program, 'u_borderRadius');
     const borderThicknessUniformLocation = gl.getUniformLocation(program, 'u_borderThickness');
     const gradientWidthUniformLocation = gl.getUniformLocation(program, 'u_gradientWidth');
+    const gradientAngleUniformLocation = gl.getUniformLocation(program, 'u_gradientAngle');
 
     // Create buffer for a full-screen quad
     const positionBuffer = gl.createBuffer();
@@ -349,6 +352,7 @@ const WebGLGradient = () => {
       gl.uniform1f(borderRadiusUniformLocation, borderRadius);
       gl.uniform1f(borderThicknessUniformLocation, borderThickness);
       gl.uniform1f(gradientWidthUniformLocation, gradientWidth);
+      gl.uniform1f(gradientAngleUniformLocation, gradientAngle);
 
       // Enable attribute
       gl.enableVertexAttribArray(positionAttributeLocation);
@@ -414,7 +418,7 @@ const WebGLGradient = () => {
       gl.deleteProgram(program);
       gl.deleteBuffer(positionBuffer);
     };
-  }, [mousePosition, offsetProgress, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness, gradientWidth]);
+  }, [mousePosition, offsetProgress, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness, gradientWidth, gradientAngle]);
 
   return (
     <div className="w-full h-screen bg-neutral-950 flex items-center justify-center">
@@ -537,6 +541,21 @@ const WebGLGradient = () => {
             className="w-full"
           />
           <span className="text-xs">{gradientWidth.toFixed(1)}</span>
+        </div>
+
+        {/* Gradient Angle */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Gradient Angle</label>
+          <input
+            type="range"
+            min="0"
+            max="360"
+            step="1"
+            value={gradientAngle}
+            onChange={(e) => setGradientAngle(parseFloat(e.target.value))}
+            className="w-full"
+          />
+          <span className="text-xs">{gradientAngle}°</span>
         </div>
       </div>
     </div>
