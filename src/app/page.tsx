@@ -17,6 +17,10 @@ const WebGLGradient = () => {
   const [borderThickness, setBorderThickness] = useState(48.0);
   const [gradientWidth, setGradientWidth] = useState(0.5);
   const [gradientAngle, setGradientAngle] = useState(90.0);
+  
+  // Noise effect controls
+  const [noiseIntensity, setNoiseIntensity] = useState(0.1);
+  const [noiseScale, setNoiseScale] = useState(1000.0);
 
   // Helper function to convert RGB to hex
   const rgbToHex = (r: number, g: number, b: number) => {
@@ -237,6 +241,53 @@ const WebGLGradient = () => {
       }
     `;
 
+    // Noise post-processing fragment shader
+    const noiseFragmentShaderSource = /* glsl */`
+      precision mediump float;
+      varying vec2 v_uv;
+      uniform sampler2D u_texture;
+      uniform float u_noiseIntensity;
+      uniform float u_noiseScale;
+      
+      // Pseudo-random function
+      float random(vec2 st) {
+        return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+      }
+      
+      // Noise function
+      float noise(vec2 st) {
+        vec2 i = floor(st);
+        vec2 f = fract(st);
+        
+        // Four corners in 2D of a tile
+        float a = random(i);
+        float b = random(i + vec2(1.0, 0.0));
+        float c = random(i + vec2(0.0, 1.0));
+        float d = random(i + vec2(1.0, 1.0));
+        
+        vec2 u = f * f * (3.0 - 2.0 * f);
+        
+        return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+      }
+      
+      void main() {
+        // Sample the original texture
+        vec4 originalColor = texture2D(u_texture, v_uv);
+        
+        // Generate static noise
+        vec2 noiseCoord = v_uv * u_noiseScale;
+        float noiseValue = noise(noiseCoord);
+        
+        // Apply noise to the color
+        vec3 noiseColor = originalColor.rgb + (noiseValue - 0.5) * u_noiseIntensity;
+        
+        // Clamp to valid range
+        noiseColor = clamp(noiseColor, 0.0, 1.0);
+        
+        gl_FragColor = vec4(noiseColor, originalColor.a);
+      }
+    `;
+
     // Function to create and compile a shader
     const createShader = (gl: WebGLRenderingContext, type: number, source: string) => {
       const shader = gl.createShader(type);
@@ -277,29 +328,50 @@ const WebGLGradient = () => {
     // Create shaders
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+    const noiseFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, noiseFragmentShaderSource);
 
-    if (!vertexShader || !fragmentShader) {
+    if (!vertexShader || !fragmentShader || !noiseFragmentShader) {
       return;
     }
 
-    // Create program
-    const program = createProgram(gl, vertexShader, fragmentShader);
-    if (!program) {
+    // Create programs
+    const mainProgram = createProgram(gl, vertexShader, fragmentShader);
+    const noiseProgram = createProgram(gl, vertexShader, noiseFragmentShader);
+    
+    if (!mainProgram || !noiseProgram) {
       return;
     }
 
-    // Get attribute and uniform locations
-    const positionAttributeLocation = gl.getAttribLocation(program, 'a_position');
-    const mouseUniformLocation = gl.getUniformLocation(program, 'u_mouse');
-    const resolutionUniformLocation = gl.getUniformLocation(program, 'u_resolution');
-    const darkColorUniformLocation = gl.getUniformLocation(program, 'u_darkColor');
-    const lightColorUniformLocation = gl.getUniformLocation(program, 'u_lightColor');
-    const middleColorUniformLocation = gl.getUniformLocation(program, 'u_middleColor');
-    const warpValueUniformLocation = gl.getUniformLocation(program, 'u_warpValue');
-    const borderRadiusUniformLocation = gl.getUniformLocation(program, 'u_borderRadius');
-    const borderThicknessUniformLocation = gl.getUniformLocation(program, 'u_borderThickness');
-    const gradientWidthUniformLocation = gl.getUniformLocation(program, 'u_gradientWidth');
-    const gradientAngleUniformLocation = gl.getUniformLocation(program, 'u_gradientAngle');
+    // Get attribute and uniform locations for main program
+    const positionAttributeLocation = gl.getAttribLocation(mainProgram, 'a_position');
+    const mouseUniformLocation = gl.getUniformLocation(mainProgram, 'u_mouse');
+    const resolutionUniformLocation = gl.getUniformLocation(mainProgram, 'u_resolution');
+    const darkColorUniformLocation = gl.getUniformLocation(mainProgram, 'u_darkColor');
+    const lightColorUniformLocation = gl.getUniformLocation(mainProgram, 'u_lightColor');
+    const middleColorUniformLocation = gl.getUniformLocation(mainProgram, 'u_middleColor');
+    const warpValueUniformLocation = gl.getUniformLocation(mainProgram, 'u_warpValue');
+    const borderRadiusUniformLocation = gl.getUniformLocation(mainProgram, 'u_borderRadius');
+    const borderThicknessUniformLocation = gl.getUniformLocation(mainProgram, 'u_borderThickness');
+    const gradientWidthUniformLocation = gl.getUniformLocation(mainProgram, 'u_gradientWidth');
+    const gradientAngleUniformLocation = gl.getUniformLocation(mainProgram, 'u_gradientAngle');
+
+    // Get attribute and uniform locations for noise program
+    const noisePositionAttributeLocation = gl.getAttribLocation(noiseProgram, 'a_position');
+    const textureUniformLocation = gl.getUniformLocation(noiseProgram, 'u_texture');
+    const noiseIntensityUniformLocation = gl.getUniformLocation(noiseProgram, 'u_noiseIntensity');
+    const noiseScaleUniformLocation = gl.getUniformLocation(noiseProgram, 'u_noiseScale');
+
+    // Create framebuffer for off-screen rendering
+    const framebuffer = gl.createFramebuffer();
+    const texture = gl.createTexture();
+    
+    // Set up the texture
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width, canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     // Create buffer for a full-screen quad
     const positionBuffer = gl.createBuffer();
@@ -318,16 +390,20 @@ const WebGLGradient = () => {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
     // Set up rendering
-    const render = () => {
+    const render = (time: number) => {
       // Set viewport
       gl.viewport(0, 0, canvas.width, canvas.height);
+
+      // First pass: render to framebuffer
+      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
 
       // Clear canvas
       gl.clearColor(0, 0, 0, 1);
       gl.clear(gl.COLOR_BUFFER_BIT);
 
-      // Use shader program
-      gl.useProgram(program);
+      // Use main shader program
+      gl.useProgram(mainProgram);
 
       // Calculate mouse position with smooth offset transition
       const offsetAmount = 0.4;
@@ -365,6 +441,33 @@ const WebGLGradient = () => {
 
       // Draw
       gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      // Second pass: render to screen with noise effect
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+      // Use noise shader program
+      gl.useProgram(noiseProgram);
+
+      // Bind the texture from the first pass
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.uniform1i(textureUniformLocation, 0);
+
+      // Set noise uniforms
+      gl.uniform1f(noiseIntensityUniformLocation, noiseIntensity);
+      gl.uniform1f(noiseScaleUniformLocation, noiseScale);
+
+      // Enable attribute
+      gl.enableVertexAttribArray(noisePositionAttributeLocation);
+
+      // Bind position buffer
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+      // Set up attribute pointer
+      gl.vertexAttribPointer(noisePositionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+
+      // Draw
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
     };
 
     // Handle canvas resize
@@ -375,13 +478,23 @@ const WebGLGradient = () => {
       if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
         canvas.width = displayWidth;
         canvas.height = displayHeight;
-        render();
+        
+        // Resize the texture
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, canvas.width, canvas.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
       }
     };
 
-    // Set initial size and render
+    // Set initial size
     resizeCanvas();
-    render();
+
+    // Animation loop
+    let animationId: number;
+    const animate = (time: number) => {
+      render(time);
+      animationId = requestAnimationFrame(animate);
+    };
+    animate(0);
 
     // Set up resize observer
     const resizeObserver = new ResizeObserver(resizeCanvas);
@@ -409,16 +522,21 @@ const WebGLGradient = () => {
 
     // Cleanup function
     return () => {
+      cancelAnimationFrame(animationId);
       resizeObserver.disconnect();
       window.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('mousedown', handleMouseDown);
       canvas.removeEventListener('mouseup', handleMouseUp);
       gl.deleteShader(vertexShader);
       gl.deleteShader(fragmentShader);
-      gl.deleteProgram(program);
+      gl.deleteShader(noiseFragmentShader);
+      gl.deleteProgram(mainProgram);
+      gl.deleteProgram(noiseProgram);
       gl.deleteBuffer(positionBuffer);
+      gl.deleteFramebuffer(framebuffer);
+      gl.deleteTexture(texture);
     };
-  }, [mousePosition, offsetProgress, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness, gradientWidth, gradientAngle]);
+  }, [mousePosition, offsetProgress, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness, gradientWidth, gradientAngle, noiseIntensity, noiseScale]);
 
   return (
     <div className="w-full h-screen bg-neutral-950 flex items-center justify-center">
@@ -556,6 +674,43 @@ const WebGLGradient = () => {
             className="w-full"
           />
           <span className="text-xs">{gradientAngle}°</span>
+        </div>
+
+        {/* Noise Controls */}
+        <div className="border-t border-gray-600 pt-4 mt-4">
+          <h4 className="text-md font-semibold mb-3">Noise Effect</h4>
+          
+          {/* Noise Intensity */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Noise Intensity</label>
+            <input
+              type="range"
+              min="0"
+              max="0.5"
+              step="0.01"
+              value={noiseIntensity}
+              onChange={(e) => setNoiseIntensity(parseFloat(e.target.value))}
+              className="w-full"
+            />
+            <span className="text-xs">{noiseIntensity.toFixed(2)}</span>
+          </div>
+
+          {/* Noise Scale */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-2">Noise Scale</label>
+            <input
+              type="range"
+              min="100"
+              max="2000"
+              step="50"
+              value={noiseScale}
+              onChange={(e) => setNoiseScale(parseFloat(e.target.value))}
+              className="w-full"
+            />
+            <span className="text-xs">{noiseScale.toFixed(0)}</span>
+          </div>
+
+
         </div>
       </div>
     </div>
