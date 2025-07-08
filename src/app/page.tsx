@@ -21,7 +21,7 @@ const WebGLGradient = () => {
   const [warpValue, setWarpValue] = useState(1.8);
   const [borderRadius, setBorderRadius] = useState(128.0);
   const [borderThickness, setBorderThickness] = useState(48.0);
-  const [gradientWidth, setGradientWidth] = useState(0.5);
+  const [gradientWidth, setGradientWidth] = useState(1.0);
   const [gradientAngle, setGradientAngle] = useState(90.0);
   
   // Noise effect controls
