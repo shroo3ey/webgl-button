@@ -451,22 +451,6 @@ const WebGLGradient = () => {
           </div>
         </div>
 
-        {/* Light Color */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Light Color</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={rgbToHex(lightColor.r, lightColor.g, lightColor.b)}
-              onChange={(e) => setLightColor(hexToRgb(e.target.value))}
-              className="w-12 h-8 rounded border border-gray-600"
-            />
-            <span className="text-xs text-gray-300">
-              {rgbToHex(lightColor.r, lightColor.g, lightColor.b)}
-            </span>
-          </div>
-        </div>
-
         {/* Middle Color */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Middle Color</label>
@@ -479,6 +463,22 @@ const WebGLGradient = () => {
             />
             <span className="text-xs text-gray-300">
               {rgbToHex(middleColor.r, middleColor.g, middleColor.b)}
+            </span>
+          </div>
+        </div>
+
+        {/* Light Color */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Light Color</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={rgbToHex(lightColor.r, lightColor.g, lightColor.b)}
+              onChange={(e) => setLightColor(hexToRgb(e.target.value))}
+              className="w-12 h-8 rounded border border-gray-600"
+            />
+            <span className="text-xs text-gray-300">
+              {rgbToHex(lightColor.r, lightColor.g, lightColor.b)}
             </span>
           </div>
         </div>
