@@ -130,16 +130,17 @@ const WebGLGradient = () => {
           (shifted_uv.x - center.x) * sin_a + (shifted_uv.y - center.y) * cos_a
         );
         
-        // Create a tangent-based gradient morphing
+        // Create a tangent-based gradient morphing with modulo repetition
         // Calculate distance from center
         float distFromCenter = distance(rotated_uv, center);
         
         // Create a tangent curve - the gradient follows a curved path
         float tangentCurve = sin(distFromCenter * 3.14159 * 2.0) * 0.1;
         
-        // Apply tangent morphing to the gradient
+        // Apply tangent morphing to the gradient with modulo repetition
         float gradient = abs(rotated_uv.x * 1.0 / u_gradientWidth - rotated_uv.y + tangentCurve);
-        gradient = 1.0 - gradient;
+        gradient = mod(gradient * 2.0, 2.0); // Scale and modulo to create repeating pattern
+        gradient = 1.0 - abs(gradient - 1.0); // Create sawtooth pattern
         
         // Create inner border effect with fixed physical thickness and gradient fade
         float borderThickness = u_borderThickness; // Border thickness in pixels
@@ -205,11 +206,12 @@ const WebGLGradient = () => {
         vec2 center_to_uv = rotated_uv - center;
         vec2 warped_uv = rotated_uv + vec2(warpStrength * center_to_uv.x, -warpStrength * center_to_uv.y);
 
-        // Sample gradient from warped position with tangent morphing
+        // Sample gradient from warped position with tangent morphing and modulo repetition
         float warpedDistFromCenter = distance(warped_uv, center);
         float warpedTangentCurve = sin(warpedDistFromCenter * 3.14159 * 2.0) * 0.1;
         float warpedGradient = abs(warped_uv.x * 1.0 / u_gradientWidth - warped_uv.y + warpedTangentCurve);
-        warpedGradient = 1.0 - warpedGradient; 
+        warpedGradient = mod(warpedGradient * 2.0, 2.0); // Scale and modulo to create repeating pattern
+        warpedGradient = 1.0 - abs(warpedGradient - 1.0); // Create sawtooth pattern 
 
         // Create color gradient from dark to middle to light
         vec3 darkBlue = u_darkColor;   // Use uniform dark color
@@ -665,7 +667,7 @@ const WebGLGradient = () => {
           <input
             type="range"
             min="0.0"
-            max="1"
+            max="2.0"
             step="0.1"
             value={gradientWidth}
             onChange={(e) => setGradientWidth(parseFloat(e.target.value))}
