@@ -18,7 +18,7 @@ const WebGLGradient = () => {
   const [darkColor, setDarkColor] = useState({ r: 0.1, g: 0.1, b: 0.2 });
   const [lightColor, setLightColor] = useState({ r: 0.86, g: 0.84, b: 0.94 });
   const [middleColor, setMiddleColor] = useState({ r: 0.26, g: 0.58, b: 0.87 });
-  const [warpValue, setWarpValue] = useState(-1.2);
+  const [warpValue, setWarpValue] = useState(1.8);
   const [borderRadius, setBorderRadius] = useState(128.0);
   const [borderThickness, setBorderThickness] = useState(48.0);
   const [gradientWidth, setGradientWidth] = useState(0.5);
@@ -619,7 +619,7 @@ const WebGLGradient = () => {
           <label className="block text-sm font-medium mb-2">Warp Value</label>
           <input
             type="range"
-            min="-5"
+            min="0"
             max="5"
             step="0.1"
             value={warpValue}
