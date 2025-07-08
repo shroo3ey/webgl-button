@@ -25,7 +25,7 @@ const WebGLGradient = () => {
   const [gradientAngle, setGradientAngle] = useState(90.0);
   
   // Noise effect controls
-  const [noiseIntensity, setNoiseIntensity] = useState(0.1);
+  const [noiseIntensity, setNoiseIntensity] = useState(0.05);
   const [noiseScale, setNoiseScale] = useState(1000.0);
 
   // Helper function to convert RGB to hex
