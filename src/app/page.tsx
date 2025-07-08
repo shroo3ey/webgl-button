@@ -4,9 +4,15 @@ import React, { useEffect, useRef, useState } from 'react';
 
 const WebGLGradient = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
   const [isMousePressed, setIsMousePressed] = useState(false);
   const [offsetProgress, setOffsetProgress] = useState(0);
+
+  // Smooth interpolation factor (lower = smoother)
+  const mouseSmoothingFactor = 0.1;
+  
+  // Use refs for smooth mouse interpolation to avoid infinite re-renders
+  const currentMouseRef = useRef({ x: 0.5, y: 0.5 });
+  const targetMouseRef = useRef({ x: 0.5, y: 0.5 });
   
   // Control states
   const [darkColor, setDarkColor] = useState({ r: 0.1, g: 0.1, b: 0.2 });
@@ -391,6 +397,13 @@ const WebGLGradient = () => {
 
     // Set up rendering
     const render = (time: number) => {
+      // Smooth mouse interpolation - runs on every frame using refs
+      const dx = targetMouseRef.current.x - currentMouseRef.current.x;
+      const dy = targetMouseRef.current.y - currentMouseRef.current.y;
+      
+      currentMouseRef.current.x += dx * mouseSmoothingFactor;
+      currentMouseRef.current.y += dy * mouseSmoothingFactor;
+
       // Set viewport
       gl.viewport(0, 0, canvas.width, canvas.height);
 
@@ -409,8 +422,8 @@ const WebGLGradient = () => {
       const offsetAmount = 0.4;
       const offsetX = offsetProgress * offsetAmount;
       const offsetY = offsetProgress * offsetAmount;
-      const adjustedMouseX = mousePosition.x + offsetX;
-      const adjustedMouseY = mousePosition.y + offsetY;
+      const adjustedMouseX = currentMouseRef.current.x + offsetX;
+      const adjustedMouseY = currentMouseRef.current.y + offsetY;
       
       // Set mouse uniform
       gl.uniform2f(mouseUniformLocation, adjustedMouseX, -adjustedMouseY);
@@ -504,7 +517,7 @@ const WebGLGradient = () => {
     const handleMouseMove = (event: MouseEvent) => {
       const x = (event.clientX / window.innerWidth) * 2 - 1;
       const y = (event.clientY / window.innerHeight) * 2 - 1;
-      setMousePosition({ x, y });
+      targetMouseRef.current = { x, y };
     };
 
     const handleMouseDown = () => {
@@ -536,7 +549,7 @@ const WebGLGradient = () => {
       gl.deleteFramebuffer(framebuffer);
       gl.deleteTexture(texture);
     };
-  }, [mousePosition, offsetProgress, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness, gradientWidth, gradientAngle, noiseIntensity, noiseScale]);
+  }, [offsetProgress, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness, gradientWidth, gradientAngle, noiseIntensity, noiseScale]);
 
   return (
     <div className="w-full h-screen bg-neutral-950 flex items-center justify-center">
