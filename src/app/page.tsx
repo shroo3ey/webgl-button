@@ -27,6 +27,9 @@ const WebGLGradient = () => {
   // Noise effect controls
   const [noiseIntensity, setNoiseIntensity] = useState(0.05);
   const [noiseScale, setNoiseScale] = useState(1000.0);
+  
+  // Gradient repeating control
+  const [gradientRepeating, setGradientRepeating] = useState(false);
 
   // Helper function to convert RGB to hex
   const rgbToHex = (r: number, g: number, b: number) => {
@@ -115,6 +118,7 @@ const WebGLGradient = () => {
       uniform float u_borderThickness;
       uniform float u_gradientWidth;
       uniform float u_gradientAngle;
+      uniform float u_gradientRepeating;
       
       void main() {
         // Shift the UV coordinates based on mouse position
@@ -137,10 +141,14 @@ const WebGLGradient = () => {
         // Create a tangent curve - the gradient follows a curved path
         float tangentCurve = sin(distFromCenter * 3.14159 * 2.0) * 0.1;
         
-        // Apply tangent morphing to the gradient with modulo repetition
+        // Apply tangent morphing to the gradient with optional modulo repetition
         float gradient = abs(rotated_uv.x * 1.0 / u_gradientWidth - rotated_uv.y + tangentCurve);
-        gradient = mod(gradient * 2.0, 2.0); // Scale and modulo to create repeating pattern
-        gradient = 1.0 - abs(gradient - 1.0); // Create sawtooth pattern
+        if (u_gradientRepeating > 0.5) {
+          gradient = mod(gradient * 2.0, 2.0); // Scale and modulo to create repeating pattern
+          gradient = 1.0 - abs(gradient - 1.0); // Create sawtooth pattern
+        } else {
+          gradient = 1.0 - gradient;
+        }
         
         // Create inner border effect with fixed physical thickness and gradient fade
         float borderThickness = u_borderThickness; // Border thickness in pixels
@@ -206,12 +214,16 @@ const WebGLGradient = () => {
         vec2 center_to_uv = rotated_uv - center;
         vec2 warped_uv = rotated_uv + vec2(warpStrength * center_to_uv.x, -warpStrength * center_to_uv.y);
 
-        // Sample gradient from warped position with tangent morphing and modulo repetition
+        // Sample gradient from warped position with tangent morphing and optional modulo repetition
         float warpedDistFromCenter = distance(warped_uv, center);
         float warpedTangentCurve = sin(warpedDistFromCenter * 3.14159 * 2.0) * 0.1;
         float warpedGradient = abs(warped_uv.x * 1.0 / u_gradientWidth - warped_uv.y + warpedTangentCurve);
-        warpedGradient = mod(warpedGradient * 2.0, 2.0); // Scale and modulo to create repeating pattern
-        warpedGradient = 1.0 - abs(warpedGradient - 1.0); // Create sawtooth pattern 
+        if (u_gradientRepeating > 0.5) {
+          warpedGradient = mod(warpedGradient * 2.0, 2.0); // Scale and modulo to create repeating pattern
+          warpedGradient = 1.0 - abs(warpedGradient - 1.0); // Create sawtooth pattern
+        } else {
+          warpedGradient = 1.0 - warpedGradient;
+        } 
 
         // Create color gradient from dark to middle to light
         vec3 darkBlue = u_darkColor;   // Use uniform dark color
@@ -362,6 +374,7 @@ const WebGLGradient = () => {
     const borderThicknessUniformLocation = gl.getUniformLocation(mainProgram, 'u_borderThickness');
     const gradientWidthUniformLocation = gl.getUniformLocation(mainProgram, 'u_gradientWidth');
     const gradientAngleUniformLocation = gl.getUniformLocation(mainProgram, 'u_gradientAngle');
+    const gradientRepeatingUniformLocation = gl.getUniformLocation(mainProgram, 'u_gradientRepeating');
 
     // Get attribute and uniform locations for noise program
     const noisePositionAttributeLocation = gl.getAttribLocation(noiseProgram, 'a_position');
@@ -444,6 +457,7 @@ const WebGLGradient = () => {
       gl.uniform1f(borderThicknessUniformLocation, borderThickness);
       gl.uniform1f(gradientWidthUniformLocation, gradientWidth);
       gl.uniform1f(gradientAngleUniformLocation, gradientAngle);
+      gl.uniform1f(gradientRepeatingUniformLocation, gradientRepeating ? 1.0 : 0.0);
 
       // Enable attribute
       gl.enableVertexAttribArray(positionAttributeLocation);
@@ -551,7 +565,7 @@ const WebGLGradient = () => {
       gl.deleteFramebuffer(framebuffer);
       gl.deleteTexture(texture);
     };
-  }, [offsetProgress, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness, gradientWidth, gradientAngle, noiseIntensity, noiseScale]);
+  }, [offsetProgress, darkColor, lightColor, middleColor, warpValue, borderRadius, borderThickness, gradientWidth, gradientAngle, gradientRepeating, noiseIntensity, noiseScale]);
 
   return (
     <div className="w-full h-screen bg-neutral-950 flex items-center justify-center">
@@ -616,6 +630,34 @@ const WebGLGradient = () => {
           </div>
         </div>
 
+        {/* Gradient Angle */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">Gradient Angle</label>
+          <input
+            type="range"
+            min="0"
+            max="360"
+            step="1"
+            value={gradientAngle}
+            onChange={(e) => setGradientAngle(parseFloat(e.target.value))}
+            className="w-full"
+          />
+          <span className="text-xs">{gradientAngle}°</span>
+        </div>
+
+        {/* Gradient Repeating Toggle */}
+        <div className="mb-4">
+          <label className="flex items-center gap-2 text-sm font-medium mb-2">
+            <input
+              type="checkbox"
+              checked={gradientRepeating}
+              onChange={(e) => setGradientRepeating(e.target.checked)}
+              className="w-4 h-4 rounded border border-gray-600"
+            />
+            Gradient Repeating
+          </label>
+        </div>
+
         {/* Warp Value */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Warp Value</label>
@@ -674,21 +716,6 @@ const WebGLGradient = () => {
             className="w-full"
           />
           <span className="text-xs">{gradientWidth.toFixed(1)}</span>
-        </div>
-
-        {/* Gradient Angle */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Gradient Angle</label>
-          <input
-            type="range"
-            min="0"
-            max="360"
-            step="1"
-            value={gradientAngle}
-            onChange={(e) => setGradientAngle(parseFloat(e.target.value))}
-            className="w-full"
-          />
-          <span className="text-xs">{gradientAngle}°</span>
         </div>
 
         {/* Noise Controls */}
