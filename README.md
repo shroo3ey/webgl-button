@@ -2,6 +2,8 @@
 
 An interactive WebGL-powered gradient button component built with Next.js, React, and TypeScript. This project showcases advanced shader programming techniques to create dynamic, responsive gradient effects with real-time mouse interaction, customizable colors, noise effects, and smooth animations.
 
+https://github.com/user-attachments/assets/946cb377-bdfe-4ae0-83cb-4e4c92761d67
+
 ## Features
 
 - **Interactive WebGL Gradients**: Real-time gradient effects that respond to mouse movement and clicks
@@ -10,10 +12,6 @@ An interactive WebGL-powered gradient button component built with Next.js, React
 - **Smooth Animations**: Buttery smooth transitions and easing functions
 - **TypeScript**: Fully typed for better development experience
 - **Modern Stack**: Built with Next.js 15, React 19, and Tailwind CSS
-
-## Demo
-
-https://github.com/user-attachments/assets/946cb377-bdfe-4ae0-83cb-4e4c92761d67
 
 ## Getting Started
 
