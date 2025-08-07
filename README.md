@@ -13,7 +13,7 @@ An interactive WebGL-powered gradient button component built with Next.js, React
 
 ## Demo
 
-<video src="https://github.com/shroo3ey/webgl-button/raw/refs/heads/master/showcase.mp4" width="640" height="480" controls></video>
+https://github.com/user-attachments/assets/946cb377-bdfe-4ae0-83cb-4e4c92761d67
 
 ## Getting Started
 
